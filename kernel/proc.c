@@ -618,7 +618,43 @@ kkill(int pid)
   }
   return -1;
 }
+int
 
+getfilenum(int pid)
+
+{
+
+  struct proc *p;
+
+  int count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+
+    acquire(&p->lock);
+
+    if(p->pid == pid){
+
+      for(int i = 0; i < NOFILE; i++){
+
+        if(p->ofile[i] != 0)
+
+          count++;
+
+      }
+
+      release(&p->lock);
+
+      return count;
+
+    }
+
+    release(&p->lock);
+
+  }
+
+  return -1;
+
+}
 void
 setkilled(struct proc *p)
 {
