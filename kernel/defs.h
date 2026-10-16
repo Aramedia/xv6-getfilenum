@@ -79,6 +79,9 @@ void            panic(char*) __attribute__((noreturn));
 void            printkinit(void);
 
 // proc.c
+struct pstat;
+int             getpinfo(struct pstat *);
+int             setStride(int);
 int             cpuid(void);
 void            kexit(int);
 int             kfork(void);

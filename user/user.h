@@ -3,6 +3,10 @@
 struct stat;
 
 // system calls
+struct pstat;
+int getpinfo(struct pstat *);
+int setStride(int);
+
 int fork(void);
 int exit(int) __attribute__((noreturn));
 int wait(int *);

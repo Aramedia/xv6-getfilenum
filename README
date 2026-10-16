@@ -46,3 +46,20 @@ You will need a RISC-V "newlib" tool chain from
 https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
 riscv64-softmmu.  Once they are installed, and in your shell
 search path, you can run "make qemu".
+
+Stride Scheduler Testing
+
+I implemented a stride scheduler in xv6 that selects the runnable process with the lowest pass value. Each process has a stride value that determines how much CPU time it receives. Processes with smaller stride values receive more CPU time.
+
+To test the scheduler, I ran three CPU-intensive processes simultaneously using the following commands: hardwork 1 & , hardwork 2 &, hardwork 3 &.
+I used the getpinfo system call to check the runtime and pass values of each process.
+
+During the final measurement, the process with stride 1 (PID 4) gained 159 scheduling turns, the process with stride 2 (PID 6) gained 80 turns, and the process with stride 3 (PID 8) gained 53 turns.
+
+The process with stride 1 received approximately 54.45% of the CPU time, the process with stride 2 received 27.40%, and the process with stride 3 received 18.15%.
+
+These results were very close to the expected percentages of 54.55%, 27.27%, and 18.18%.
+
+I also observed that the final pass values were 585, 585, and 586. This showed that the scheduler was keeping the accumulated pass values nearly equal while giving more CPU time to processes with smaller strides.
+
+Overall, the results demonstrated that my stride scheduler successfully distributed CPU time according to the assigned stride values when running xv6 with one CPU.

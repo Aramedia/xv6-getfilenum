@@ -4,11 +4,16 @@
 #include "riscv.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pstat.h"
 #include "defs.h"
+
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+
+#define MaxPassTotal 1000000
+int passTotal = 0; 
 
 struct proc *initproc;
 
@@ -124,6 +129,10 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->runtime = 0;
+  p->pass = 0;
+  p->stride = 1;
+
 
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
@@ -429,41 +438,76 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *best;
   struct cpu *c = mycpu();
 
   c->proc = 0;
+
   for (;;) {
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
     intr_on();
     intr_off();
 
-    int found = 0;
+    best = 0;
+
+    // Find the RUNNABLE process with the lowest pass
     for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
+
       if (p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+        if (best == 0 || p->pass < best->pass) {
+          best = p;
+        }
+      }
+
+      release(&p->lock);
+    }
+
+    // Run the process with the lowest pass
+    if (best != 0) {
+      acquire(&best->lock);
+
+      if (best->state == RUNNABLE) {
+        best->state = RUNNING;
+
+        // Update scheduling information
+        best->runtime++;
+        best->pass += best->stride;
+        passTotal += best->stride;
+
+      
+
+        // Reset pass values to prevent integer overflow
+        if (passTotal >= MaxPassTotal) {
+          passTotal = 0;
+
+          for (struct proc *p = proc; p < &proc[NPROC]; p++) {
+            if (p == best) {
+              p->pass = 0;
+            } else {
+              acquire(&p->lock);
+              p->pass = 0;
+              release(&p->lock);
+            }
+          }
+        }
+
+        // Switch to the selected process
+        c->proc = best;
+
+        swtch(&c->context, &best->context);
 
         // Don't re-enable interrupts on release.
         mycpu()->intena = 0;
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
+        // Process is done running for now
         c->proc = 0;
-        found = 1;
       }
-      release(&p->lock);
-    }
-    if (found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+
+      release(&best->lock);
+
+    } else {
+      // No runnable processes
+    
       asm volatile("wfi");
     }
   }
@@ -734,4 +778,49 @@ procdump(void)
     printk("%d %s %s", p->pid, state, p->name);
     printk("\n");
   }
+
+}
+
+int
+getpinfo(struct pstat *pFromUser)
+{
+  struct pstat pinfo = {0};
+
+  if(pFromUser == 0)
+    return -1;
+
+  for(int i = 0; i < NPROC; i++) {
+    struct proc *p = &proc[i];
+
+    acquire(&p->lock);
+
+    pinfo.inuse[i] = (p->state != UNUSED);
+    pinfo.pid[i] = p->pid;
+    pinfo.runtime[i] = p->runtime;
+    pinfo.pass[i] = p->pass; 
+
+    release(&p->lock);
+  }
+  pinfo.passTotal = passTotal;
+
+  if(either_copyout(1, (uint64)pFromUser,
+                    (char *)&pinfo, sizeof(struct pstat)) < 0)
+    return -1;
+
+  return 0;
+}
+
+int
+setStride(int strideLength)
+{
+  if(strideLength < 1)
+    return -1;
+
+  struct proc *p = myproc();
+
+  acquire(&p->lock);
+  p->stride = strideLength;
+  release(&p->lock);
+
+  return 0;
 }

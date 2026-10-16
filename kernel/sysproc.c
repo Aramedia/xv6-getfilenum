@@ -120,3 +120,22 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_getpinfo(void)
+{
+  uint64 addr;
+
+  argaddr(0, &addr);
+
+  return getpinfo((struct pstat *)addr);
+}
+uint64
+sys_setStride(void)
+{
+  int strideLength;
+
+  argint(0, &strideLength);
+
+  return setStride(strideLength);
+} 
