@@ -63,3 +63,47 @@ These results were very close to the expected percentages of 54.55%, 27.27%, and
 I also observed that the final pass values were 585, 585, and 586. This showed that the scheduler was keeping the accumulated pass values nearly equal while giving more CPU time to processes with smaller strides.
 
 Overall, the results demonstrated that my stride scheduler successfully distributed CPU time according to the assigned stride values when running xv6 with one CPU.
+
+# xv6 Page Tables Project
+
+xv6 Page Tables Project
+
+For this project, I worked on three different features related to virtual memory management in xv6. The first part involved printing page tables, the second focused on tracking which memory pages had been accessed, and the third involved making the getpid() system call more efficient by allowing users to access their process ID directly from memory.
+
+Part 1: Printing Page Tables
+
+For the first part, I implemented a function called vmprint() in kernel/vm.c. The purpose of this function is to display the contents of a process’s page table so that I can better understand how virtual addresses are mapped to physical memory.
+
+The function goes through the page table recursively and prints only valid entries. For each entry, it displays the index, page table entry (PTE), and physical address. I also added indentation to make it easier to distinguish between the different levels of the page table.
+
+I modified kernel/exec.c so that the function runs when the first process is executed. After compiling and running xv6, I was able to see the page table information printed during startup, which confirmed that the function was working.
+
+Part 2: Tracking Accessed Pages
+
+For the second part, I implemented a system call called pgaccess(). This system call allows a process to check which of its memory pages have been accessed.
+
+I used the accessed bit (PTE_A) in each page table entry to determine whether a page had been accessed. The system call checks the requested pages and creates a bitmask representing the results. Each bit corresponds to a page, with a value of 1 indicating that the page was accessed. After checking a page, the function clears its accessed bit so that future calls can track new accesses.
+
+To test this feature, I created a program called pgaccesstest.c. The program allocated memory, accessed different pages, and called pgaccess() to check the results. When I ran the test, the system correctly identified the pages that had been accessed.
+
+Part 3: Speeding Up getpid()
+
+For the final part, I implemented a way for userspace programs to retrieve their process ID without having to make a traditional system call.
+
+Normally, a program calls getpid() to ask the kernel for its process ID. In this implementation, I created a special memory page called USYSCALL that stores the process ID and can be accessed directly from userspace.
+
+I updated the process structure to include a pointer to this page and modified the kernel to allocate and initialize it whenever a new process is created. I also mapped the page with read-only permissions so that userspace programs could read the PID but could not modify it. When a process is cleaned up, the page is unmapped and freed.
+
+To verify that everything worked, I created usyscalltest.c, which compares the PID stored in the USYSCALL page with the value returned by getpid(). I ran the program multiple times, and each process returned matching PID values.
+
+I also created usyscallro.c to test whether userspace could modify the shared page. When the program attempted to write to it, xv6 generated a page fault (scause = 0xf). This confirmed that the page was protected against writes.
+
+Final Testing
+
+After implementing all three parts, I ran the xv6 usertests program to check whether my changes affected other operating system functionality.
+
+Most of the tests passed, including tests related to process creation, memory allocation, page protection, and lazy memory allocation. However, the lazy_copy test failed with the message write succeeded. I did not determine the cause of this failure.
+
+The individual tests I created for the project worked as expected, and xv6 successfully compiled and booted with all three implementations.
+
+Overall, this project helped me better understand how xv6 manages virtual memory and how page tables are used to control memory access. It also gave me more experience working with kernel functions, system calls, and memory permissions. The USYSCALL implementation was particularly interesting because it showed how a simple memory mapping can allow a program to retrieve information without the overhead of making a system call.
