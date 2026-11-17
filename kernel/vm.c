@@ -279,6 +279,40 @@ freewalk(pagetable_t pagetable)
   kfree((void *)pagetable);
 }
 
+// Recursively print valid page table entries.
+void
+vmprint_recursive(pagetable_t pagetable, int depth)
+{
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+
+    if (pte & PTE_V) {
+
+      // Print indentation based on the page table level.
+      for (int j = 0; j < depth; j++) {
+        printk(" ..");
+      }
+
+      // Print the PTE index, value, and physical address.
+      printk("%d: pte %p pa %p\n", i, (void *)pte, (void *)PTE2PA(pte));
+
+      // Recursively visit lower-level page tables.
+      if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+        uint64 child = PTE2PA(pte);
+        vmprint_recursive((pagetable_t)child, depth + 1);
+      }
+    }
+  }
+}
+
+// Print the complete page table.
+void
+vmprint(pagetable_t pagetable)
+{
+  printk("page table %p\n", pagetable);
+  vmprint_recursive(pagetable, 1);
+}
+
 // Free user memory pages,
 // then free page-table pages.
 void
