@@ -153,6 +153,7 @@ UPROGS=\
 	$U/_sync\
 	$U/_getpinfo\
 	$U/_hardwork\
+	$U/_pgaccesstest\
 
 
 fs.img: mkfs/mkfs README $(UPROGS)

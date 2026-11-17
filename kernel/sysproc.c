@@ -22,6 +22,27 @@ sys_getpid(void)
   return myproc()->pid;
 }
 
+// System call to check which user pages have been accessed.
+uint64
+sys_pgaccess(void)
+{
+  uint64 start;
+  int npages;
+  uint64 user_mask;
+
+  // Get the starting virtual address.
+  argaddr(0, &start);
+
+  // Get the number of pages to check.
+  argint(1, &npages);
+
+  // Get the user address where the bitmask will be stored.
+  argaddr(2, &user_mask);
+
+  // Call the function that checks page access.
+  return pgaccess(start, npages, user_mask);
+}
+
 uint64
 sys_fork(void)
 {

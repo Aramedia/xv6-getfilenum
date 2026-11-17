@@ -305,6 +305,45 @@ vmprint_recursive(pagetable_t pagetable, int depth)
   }
 }
 
+// Check which user pages have been accessed.
+int
+pgaccess(uint64 start, int npages, uint64 user_mask)
+{
+  struct proc *p = myproc();
+  uint32 mask = 0;
+
+  // Limit the number of pages to 32.
+  if (npages < 0 || npages > 32)
+    return -1;
+
+  // Check each page.
+  for (int i = 0; i < npages; i++) {
+
+    // Find the page table entry for this virtual address.
+    pte_t *pte = walk(p->pagetable, start + i * PGSIZE, 0);
+
+    // Skip invalid or unmapped pages.
+    if (pte == 0 || (*pte & PTE_V) == 0)
+      continue;
+
+    // Check whether the page has been accessed.
+    if (*pte & PTE_A) {
+
+      // Set the corresponding bit in the bitmask.
+      mask |= (1U << i);
+
+      // Clear the accessed bit for future checks.
+      *pte &= ~PTE_A;
+    }
+  }
+
+  // Copy the bitmask from kernel memory to user memory
+  if (copyout(p->pagetable, p->sz, user_mask, (char *)&mask, sizeof(mask)) < 0)
+    return -1;
+
+  return 0;
+}
+
 // Print the complete page table.
 void
 vmprint(pagetable_t pagetable)

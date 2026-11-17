@@ -46,3 +46,4 @@ entry("uptime");
 entry("sync");
 entry("getpinfo");
 entry("setStride"); 
+entry("pgaccess");

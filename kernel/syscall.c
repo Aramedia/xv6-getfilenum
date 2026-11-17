@@ -93,6 +93,7 @@ extern uint64 sys_fstat(void);
 extern uint64 sys_chdir(void);
 extern uint64 sys_dup(void);
 extern uint64 sys_getpid(void);
+extern uint64 sys_pgaccess(void);
 extern uint64 sys_sbrk(void);
 extern uint64 sys_pause(void);
 extern uint64 sys_uptime(void);
@@ -138,6 +139,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_sync]    = sys_sync,
   [SYS_getpinfo] sys_getpinfo, 
   [SYS_setStride] sys_setStride,
+  [SYS_pgaccess] sys_pgaccess,
   
   // clang-format on
 };
