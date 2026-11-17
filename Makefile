@@ -154,6 +154,9 @@ UPROGS=\
 	$U/_getpinfo\
 	$U/_hardwork\
 	$U/_pgaccesstest\
+	$U/_usyscalltest\
+	$U/_usyscallro\
+
 
 
 fs.img: mkfs/mkfs README $(UPROGS)
